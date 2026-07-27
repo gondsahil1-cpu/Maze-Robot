@@ -148,9 +148,9 @@ static_assert(ECHO_RIGHT < 32, "ECHO_RIGHT must be < 32 for GPIO_IN_REG");
 // =============================================================================
 
 // ── Sensor thresholds ────────────────────────────────────────────────────────
-#define FRONT_WALL_THRESHOLD 14.0f  // cm — wall entry threshold (FIX E)
-#define TURN_FRONT_CLEAR 18.0f      // cm — turn exit threshold  (FIX E)
-#define RIGHT_WALL_OPEN 18.0f       // cm — right corridor considered open
+#define FRONT_WALL_THRESHOLD 8.0f  // cm — wall entry threshold (FIX E)
+#define TURN_FRONT_CLEAR 14.0f      // cm — turn exit threshold  (FIX E)
+#define RIGHT_WALL_OPEN 14.0f       // cm — right corridor considered open
 #define LEFT_WALL_TARGET 10.0f      // cm — desired left-wall distance (PD mode)
 #define LEFT_WALL_NEAR 7.0f         // cm — emergency too-close (FIX F)
 #define LEFT_WALL_FAR 20.0f         // cm — left wall lost / open corridor
@@ -159,10 +159,10 @@ static_assert(ECHO_RIGHT < 32, "ECHO_RIGHT must be < 32 for GPIO_IN_REG");
 // Both sensors must read closer than this for centre PID to engage.
 // Beyond this the robot is in a one-sided corridor and falls back to
 // left-wall PD (or straight drive if left wall is also absent).
-#define CORRIDOR_VALID_CM 60.0f  // cm — max range for a "visible" wall
+#define CORRIDOR_VALID_CM 40.0f  // cm — max range for a "visible" wall
 
 // ── Drive speeds ─────────────────────────────────────────────────────────────
-#define BASE_SPEED 180
+#define BASE_SPEED 130
 #define TURN_SPEED 130
 #define REVERSE_SPEED 130  // FIX A
 #define CORRECTION_SCALE 0.8f
