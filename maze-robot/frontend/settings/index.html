@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings · Maze Robot Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="shell" id="shell"></div>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/socket.js"></script>
+  <script src="../js/sidebar.js"></script>
+  <script>Auth.requireAuth();</script>
+  <script>
+    const user = Auth.getUser();
+    document.getElementById('shell').innerHTML = renderSidebar('Settings') + `
+      <main class="main">
+        <div class="topbar"><div><h1>Settings</h1><div class="sub">Account and platform configuration</div></div></div>
+
+        <div class="glass" style="padding:20px; margin-bottom:24px; max-width:480px;">
+          <h2 style="font-size:15px; margin-bottom:14px;">Your Account</h2>
+          <p style="font-size:14px; color:var(--text-secondary);">Username: <strong style="color:var(--text-primary)">${user?.username}</strong></p>
+          <p style="font-size:14px; color:var(--text-secondary);">Email: <strong style="color:var(--text-primary)">${user?.email || '—'}</strong></p>
+          <p style="font-size:14px; color:var(--text-secondary);">Role: <strong style="color:var(--text-primary)">${user?.role}</strong></p>
+        </div>
+
+        ${Auth.isAdmin() ? `
+        <div class="glass" style="padding:20px;">
+          <h2 style="font-size:15px; margin-bottom:14px;">User Management</h2>
+          <table>
+            <thead><tr><th>Username</th><th>Email</th><th>Role</th><th>Last Login</th><th></th></tr></thead>
+            <tbody id="usersBody"><tr><td colspan="5" style="color:var(--text-secondary);">Loading...</td></tr></tbody>
+          </table>
+        </div>` : `<div class="glass" style="padding:16px; color:var(--text-secondary);">User management is available to administrators only.</div>`}
+      </main>`;
+
+    if (Auth.isAdmin()) {
+      (async () => {
+        const { users } = await apiFetch('/api/users');
+        document.getElementById('usersBody').innerHTML = users.map(u => `
+          <tr>
+            <td>${u.username}</td><td>${u.email}</td>
+            <td>
+              <select data-role-for="${u._id}">
+                ${['administrator','viewer','robot'].map(r => `<option value="${r}" ${r===u.role?'selected':''}>${r}</option>`).join('')}
+              </select>
+            </td>
+            <td>${u.lastLogin ? new Date(u.lastLogin).toLocaleString() : '—'}</td>
+            <td><button class="btn" data-del="${u._id}">Delete</button></td>
+          </tr>`).join('');
+
+        document.querySelectorAll('[data-role-for]').forEach(sel => {
+          sel.addEventListener('change', async () => {
+            await apiFetch(`/api/users/${sel.dataset.roleFor}/role`, { method: 'PATCH', body: JSON.stringify({ role: sel.value }) });
+            showToast?.('Role updated', 'success');
+          });
+        });
+        document.querySelectorAll('[data-del]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            if (!confirm('Delete this user?')) return;
+            await apiFetch(`/api/users/${btn.dataset.del}`, { method: 'DELETE' });
+            btn.closest('tr').remove();
+          });
+        });
+      })();
+    }
+  </script>
+</body>
+</html>

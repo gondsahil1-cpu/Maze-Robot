@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In · Maze Robot Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="login-wrap">
+    <form class="glass login-card" id="loginForm">
+      <div class="brand-row"><span class="dot"></span><strong style="font-family:var(--font-display)">MAZE ROBOT LAB</strong></div>
+      <h1>Welcome back</h1>
+      <p class="tagline">Sign in to monitor and control the robot.</p>
+
+      <div class="field">
+        <label for="username">Username or email</label>
+        <input type="text" id="username" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" required autocomplete="current-password">
+      </div>
+      <div class="field" style="display:flex; justify-content:space-between; align-items:center;">
+        <label class="check-row" style="margin:0;"><input type="checkbox" id="remember"> Remember me</label>
+        <a href="forgot-password.html" style="font-size:13px;">Forgot password?</a>
+      </div>
+      <button class="btn primary full" type="submit">Sign In</button>
+      <div class="error-msg" id="errorMsg"></div>
+    </form>
+  </div>
+  <script src="../js/api.js"></script>
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const rememberMe = document.getElementById('remember').checked;
+      const errorEl = document.getElementById('errorMsg');
+      errorEl.textContent = '';
+      try {
+        const data = await apiFetch('/api/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ username, password, rememberMe })
+        });
+        Auth.setSession(data.token, data.user, rememberMe);
+        window.location.href = '../dashboard/index.html';
+      } catch (err) {
+        errorEl.textContent = err.message;
+      }
+    });
+  </script>
+</body>
+</html>
