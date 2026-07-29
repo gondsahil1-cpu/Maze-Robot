@@ -43,6 +43,9 @@
 #define TRIG_RIGHT 15
 #define ECHO_RIGHT 5
 
+// ── Buzzer ────────────────────────────────────────────────────────────────
+#define BUZZER_PIN 2   // passive buzzer; driven with tone()/noTone()
+
 // ── Motor direction inversion ────────────────────────────────────────────
 // If a motor spins backward when the code commands forward (positive speed),
 // set its invert flag to 1 instead of re-wiring the motor leads.
@@ -95,20 +98,21 @@
 // ── Debug counters/state ────────────────────────────────────────────────
 static uint32_t g_loopCount = 0;
 
-struct SensorState;
+// =============================================================================
+//  SHARED TYPES — must be fully defined here, before ANY function in the file.
+//  The Arduino IDE auto-generates forward prototypes for every function and
+//  inserts them near the top of the translation unit, above your own code.
+//  If SensorState/Action were defined further down, those auto-generated
+//  prototypes (e.g. "void readSensors(SensorState &s);") would reference an
+//  undeclared type and the build would fail — regardless of where you
+//  actually use these types later in the file.
+// =============================================================================
+struct SensorState {
+  float L, F, R;            // this loop's median-filtered readings
+  bool wallL, wallF, wallR;  // WALL_CM classification (true = wall present)
+};
 
-// Full definition needed here — plain enums can't be forward-declared
-// without an explicit underlying type, so this must come before any
-// function prototype that uses Action by value.
 enum Action { ACT_FORWARD, ACT_LEFT, ACT_RIGHT, ACT_UTURN };
-
-void readSensors(SensorState &s);
-void filterReadings(SensorState &s);
-void detectWalls(SensorState &s);
-Action decideDirection(const SensorState &s);
-void wallCorrection(float filteredL, bool wallPresent);
-void executeMovement(Action a, const SensorState &s);
-
 
 // =============================================================================
 //  SENSOR READ — single raw ping
@@ -193,11 +197,8 @@ void pivotRight(int s) { DBG_PRINTF("[ACTION] PIVOT RIGHT speed=%d\n", s); setMo
 
 // =============================================================================
 //  SENSOR STATE (readSensors -> filterReadings -> detectWalls)
+//  (struct SensorState itself is defined up top — see SHARED TYPES section)
 // =============================================================================
-struct SensorState {
-  float L, F, R;          // this loop's median-filtered readings
-  bool wallL, wallF, wallR; // WALL_CM classification (true = wall present)
-};
 
 // Debounce counters: how many consecutive loops each side has read "open"
 static int openStreakL = 0;
@@ -232,9 +233,8 @@ void detectWalls(SensorState &s) {
 
 // =============================================================================
 //  DECISION — left-hand rule junction table (spec section 7)
+//  (enum Action itself is defined up top — see SHARED TYPES section)
 // =============================================================================
-
-
 Action decideDirection(const SensorState &s) {
   // LEFT > FORWARD > RIGHT > BACK
   if (!s.wallL) { DBG_PRINTLN("[DECISION] left open -> LEFT");    return ACT_LEFT; }
