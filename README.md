@@ -74,6 +74,3 @@ by hand for your specific motors, wheel diameter, and floor surface. If a motor 
 the wrong way on a positive command, flip the corresponding `MOTOR_x_INVERT` flag
 (where present) rather than re-wiring the driver.
 
-## License
-
-Add a license of your choice (e.g. MIT) here.
