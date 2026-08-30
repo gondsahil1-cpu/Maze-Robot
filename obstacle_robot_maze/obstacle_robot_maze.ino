@@ -75,10 +75,10 @@
 #define OPEN_CONFIRM_COUNT 2
 
 // Speeds
-#define BASE_SPEED     190
-#define TURN_SPEED     150
-#define NUDGE_SPEED    150
-#define REVERSE_SPEED  150
+#define BASE_SPEED     130
+#define TURN_SPEED     100
+#define NUDGE_SPEED    100
+#define REVERSE_SPEED  100
 
 // Wall-following correction gain/limits (small trims only, never full turns)
 #define CORR_KP        6.0f

@@ -36,12 +36,12 @@
 #define STBY 13
 
 // ── Ultrasonic Sensors (HC-SR04) ─────────────────────────────────────────
-#define TRIG_FRONT 21
-#define ECHO_FRONT 23
+#define TRIG_FRONT 5
+#define ECHO_FRONT 21
 #define TRIG_LEFT  4
 #define ECHO_LEFT  22
-#define TRIG_RIGHT 15
-#define ECHO_RIGHT 5
+#define TRIG_RIGHT 16
+#define ECHO_RIGHT 17
 
 // ── Motor direction inversion ────────────────────────────────────────────
 // If a motor spins backward when the code commands forward (positive speed),
@@ -63,7 +63,7 @@
 
 // TARGET_LEFT_CM: desired steady-state distance to a left wall while cruising
 // down a corridor. Tune to roughly the middle of your corridor width.
-#define TARGET_LEFT_CM 9.0f
+#define TARGET_LEFT_CM 6.0f
 
 // OPEN_JUMP_CM / OPEN_CONFIRM_COUNT: an opening is only accepted once a side
 // reading exceeds WALL_CM for this many consecutive filtered samples in a row.
@@ -72,10 +72,10 @@
 #define OPEN_CONFIRM_COUNT 2
 
 // Speeds
-#define BASE_SPEED     190
-#define TURN_SPEED     150
-#define NUDGE_SPEED    150
-#define REVERSE_SPEED  150
+#define BASE_SPEED     100
+#define TURN_SPEED     100
+#define NUDGE_SPEED    100
+#define REVERSE_SPEED  100
 
 // Wall-following correction gain/limits (small trims only, never full turns)
 #define CORR_KP        6.0f
@@ -85,7 +85,7 @@
 // Timing — ALL OF THESE MUST BE CALIBRATED EXPERIMENTALLY ON YOUR ROBOT.
 // Sonar alone can't measure turn angle; these are open-loop time pulses.
 #define NUDGE_MS       220   // creep forward so the wheel axle clears the corner
-#define TURN_MS        430   // time to pivot ~90 degrees at TURN_SPEED
+#define TURN_MS        500   // time to pivot ~90 degrees at TURN_SPEED
 #define UTURN_MS        860   // time to pivot ~180 degrees (recalibrate, not just 2x TURN_MS)
 #define REVERSE_MS     300
 #define SETTLE_MS       40   // brief pause after stopping before the next pivot
