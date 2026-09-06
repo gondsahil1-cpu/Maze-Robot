@@ -37,7 +37,7 @@ const float WALL_PRESENT_CM   = 10.0;  // right distance below this => "right wa
 const float DESIRED_LEFT_CM   = 6.0;  // setpoint used ONLY in single-wall (left) mode
 const float FRONT_STOP_CM     = 4.0;  // stop/turn if something this close in front
 
-const int   BASE_SPEED  = 150;   // 0-255 PWM, forward cruising speed
+const int   BASE_SPEED  = 219;   // 0-255 PWM, forward cruising speed
 const int   MAX_SPEED   = 220;
 const int   MIN_SPEED   = 60;
 
@@ -69,13 +69,12 @@ void setup() {
 // ---------------- Ultrasonic read (cm), with timeout ----------------
 float readDistanceCM(int trigPin, int echoPin) {
   digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
   digitalWrite(trigPin, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
 
   // 25000us timeout ~ 4m range; returns 0 if no echo (out of range)
-  long duration = pulseIn(echoPin, HIGH, 25000UL);
+  long duration = pulseIn(echoPin, HIGH, 5880UL);
   if (duration == 0) return MAX_DISTANCE_CM; // no echo -> treat as far / no wall
 
   float distance = (duration * 0.0343) / 2.0; // speed of sound = 343 m/s
@@ -120,14 +119,14 @@ void loop() {
   // --- Dead-end / obstacle handling ---
   if (frontDist < FRONT_STOP_CM) {
     stopMotors();
-    delay(150);
+    delay(50);
     // Turn toward the side with more room
     if (rightDist > leftDist) {
       setMotors(150, -150);  // pivot right
     } else {
       setMotors(-150, 150);  // pivot left
     }
-    delay(300);
+    delay(150);
     integral = 0; lastError = 0; // reset PID after a hard maneuver
     return;
   }
@@ -181,5 +180,5 @@ void loop() {
   Serial.print(" Lspd:"); Serial.print(leftSpeed);
   Serial.print(" Rspd:"); Serial.println(rightSpeed);
 
-  delay(20); // small loop delay for sensor settling
+  delay(10); // small loop delay for sensor settling
 }

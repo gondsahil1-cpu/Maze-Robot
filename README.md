@@ -1,76 +1,120 @@
-# ESP32 Maze-Solving / Wall-Following Robot
+# ESP32 PID Wall-Follower Robot
 
 A small differential-drive robot built on an ESP32, a TB6612FNG dual motor driver, and
-three HC-SR04 ultrasonic sensors (front / left / right). This repo holds a progression
-of sketches — from a bare sensor test up to a full interrupt-driven, OLED-equipped
-maze solver — plus a standalone PID wall-follower.
+three HC-SR04 ultrasonic sensors (front / left / right). The robot hugs the left wall
+at a fixed setpoint and automatically switches to a "centering" mode (balances left vs.
+right distance) once a right-side wall is also detected — stopping and pivoting away
+from dead ends. This repo holds four variants of that same PID wall-follower: a plain
+standalone version, and three that add dual AS5600 wheel encoders plus a self-hosted
+WiFi web dashboard.
+
+There is currently no turn-decision maze-solving state machine (no left-hand-rule
+logic) in any of these sketches — they are pure corridor/centering followers, not full
+maze solvers.
 
 ## Hardware
 
-- ESP32 DevKit (WROOM, **no PSRAM** — see note below)
+- ESP32 DevKit (WROOM)
 - TB6612FNG dual motor driver
-- 2× DC gearmotors (N20 12V 300RPM used in `maze_robot_v8_.ino`) + wheels
+- 2× DC gearmotors + wheels
 - 3× HC-SR04 ultrasonic sensors (front, left, right)
-- SSD1306 0.96" I2C OLED — used only by `maze_robot_v8_.ino`
-- Passive/active buzzer
 - 2S Li-ion battery pack (or equivalent supply for motors + ESP32)
-
-> ⚠️ **PSRAM warning:** `maze_robot_v8_.ino` uses GPIO 16/17 as plain digital I/O for
-> the right sensor in some configurations. On ESP32-**WROVER** boards those pins are
-> wired to the PSRAM chip and cannot be used as GPIO. Only run that pin mapping on a
-> PSRAM-less WROOM DevKit, or remap the right sensor to spare pins (e.g. 5/15) as noted
-> in the sketch header.
+- **AS5600/WebDashboard sketches only:** 2× AS5600 magnetic rotary encoders (one per
+  wheel/motor shaft, each with its own diametrically-magnetized magnet) for wheel
+  odometry
 
 ## Sketches
 
 | File | Purpose |
 |---|---|
-| `sensor_test.ino` | Minimal diagnostic sketch. Reads all three HC-SR04 sensors (median-of-3 filtered) and prints distances to Serial at 115200 baud. No motor code — run this first to confirm wiring before flashing anything that drives the motors. |
-| `wall_follower_robot_esp32.ino` | Standalone PID wall follower. Hugs the left wall at a fixed setpoint, and automatically switches to "centering" mode (balances left vs. right distance) when a right-side wall is also detected. Stops/pivots at dead ends. Good for open corridors, not a full maze solver (no turn-decision state machine). |
-| `obstacle_robot_maze.ino` | Left-hand-rule maze solver (`LEFT > FORWARD > RIGHT > U-TURN`). Structured as an explicit pipeline: `readSensors → filterReadings → detectWalls → decideDirection → executeMovement`, with debounced "opening" detection and a small proportional wall-correction trim while driving straight. Includes a buzzer pin. Debug logging is compiled out by default (`DEBUG 0`). |
-| `obstacle_robot_maze_without_Display.ino` | Same left-hand-rule pipeline/logic as `obstacle_robot_maze.ino`, with a different pin mapping and retuned constants (target wall distance, base speed, turn timing). Despite the filename, **neither maze sketch drives a display** — this is the variant meant for a build without a buzzer / with the alternate wiring. |
-| `maze_robot_v8_.ino` | The full-featured build. Interrupt-driven ultrasonic subsystem (ISRs + a non-blocking sensor scheduler, no `pulseIn()` blocking), a proper `RobotState` finite-state machine (`FORWARD / TURN_LEFT / TURN_RIGHT / SEARCHING / STUCK / REVERSING / TRANSITION`), optional PID **centre-of-corridor** following (`CENTER_MODE`) with PD left-wall fallback, a stuck-robot watchdog, buzzer feedback, and live SSD1306 OLED status output. This is the most complete and actively developed version. |
+| `wall_follower_robot_esp32.ino` | Standalone PID wall follower — no WiFi, no encoders. Debug output goes to Serial only (115200 baud). Good starting point since it needs no extra wiring beyond the motors and three ultrasonic sensors. |
+| `wall_follower_robot_AS5600_with_WebDashboard.ino` | Same PID wall-follower logic, plus dual AS5600 wheel encoders (angle / revolutions / RPM per wheel) and a self-hosted WiFi access point serving a live web dashboard. This is the earlier/simpler dashboard build: a plain dark UI, and turn/reverse maneuvers block the dashboard briefly (uses `delay()`). |
+| `wall_follower_robot_AS5600__1_.ino` | Same encoder + WiFi dashboard combo, reworked with a more polished glass-panel teal-themed UI, an added "distance traveled" / "isMoving" readout derived from wheel odometry, and a non-blocking `serverDelay()` during turns so the dashboard keeps responding while the robot pivots. |
+| `wall_follower_robot_WebDashBoard.ino` | Functionally identical to `wall_follower_robot_AS5600__1_.ino` (same odometry telemetry, same non-blocking turn handling) — just re-skinned with a neutral gray/dark color theme instead of teal, and `BASE_SPEED` reverted from 150 back to 200. |
+
+> **Note:** the last three files are near-duplicates of each other (same encoder +
+> dashboard logic, differing only in `BASE_SPEED`, dashboard color theme, and whether
+> turns block the web server). Consider picking one as your canonical version and
+> deleting the others once you've settled on a look/tuning you like.
 
 ## Which sketch to flash
 
-1. **`sensor_test.ino`** — verify all three sensors read sane distances.
-2. **`wall_follower_robot_esp32.ino`** — if you just want smooth corridor-centering behavior without full maze logic.
-3. **`obstacle_robot_maze.ino`** / **`obstacle_robot_maze_without_Display.ino`** — for left-hand-rule maze solving on simpler hardware (no OLED).
-4. **`maze_robot_v8_.ino`** — for the full build with OLED status, non-blocking sensors, and a proper state machine. Start here if your hardware matches the parts list above.
+1. **`wall_follower_robot_esp32.ino`** — if you just want PID wall-following/centering
+   behavior with no encoders and no WiFi.
+2. **`wall_follower_robot_AS5600__1_.ino`** or **`wall_follower_robot_WebDashBoard.ino`**
+   — if you've wired up the two AS5600 encoders and want live web telemetry with
+   non-blocking turns and odometry-based distance/moving stats (pick whichever color
+   theme / `BASE_SPEED` you prefer — they're otherwise the same).
+3. **`wall_follower_robot_AS5600_with_WebDashboard.ino`** — same encoder + dashboard
+   feature set, but the earlier/simpler version, if you don't need the extra telemetry.
 
 ## Required Arduino libraries
 
-Install via Library Manager (Arduino IDE) or PlatformIO before building:
-
 - **ESP32 board support** ("esp32" by Espressif Systems) — Arduino-ESP32 core 3.x
-- `Adafruit GFX Library` — only needed for `maze_robot_v8_.ino`
-- `Adafruit SSD1306` — only needed for `maze_robot_v8_.ino`
-
-(`Wire.h`, `esp_timer.h`, `soc/gpio_reg.h` ship with the ESP32 core.)
+- `Wire.h`, `WiFi.h`, `WebServer.h` — all ship with the ESP32 core, no separate
+  Library Manager install needed. `Wire.h` is used for both AS5600 encoders (the two
+  chips share the fixed I2C address `0x36`, so each gets its own hardware I2C
+  peripheral: `Wire` and `Wire1`). `WiFi.h`/`WebServer.h` are only used by the three
+  dashboard sketches (SoftAP + HTTP server).
 
 ## Wiring
 
-Pin assignments **differ between sketches** — always check the `#define` block at the
-top of the file you're flashing before wiring up. Rough summary:
+Pin assignments are identical across all four sketches:
 
-| Signal | wall_follower / sensor_test | obstacle_robot_maze | obstacle_robot_maze_without_Display | maze_robot_v8 |
-|---|---|---|---|---|
-| Motor STBY | 13 | 13 | 13 | 13 |
-| Motor AIN1/AIN2/PWMA | 26/25/18 | 25/26/18 | 25/26/18 | 25/26/18 |
-| Motor BIN1/BIN2/PWMB | 27/14/19 | 27/14/19 | 27/14/19 | 27/14/19 |
-| TRIG/ECHO Front | 5 / 21 | 21 / 23 | 5 / 21 | 21 / 23 |
-| TRIG/ECHO Left | 4 / 22 | 4 / 22 | 4 / 22 | 4 / 22 |
-| TRIG/ECHO Right | 16 / 17 | 15 / 5 | 16 / 17 | 15 / 5 |
-| Buzzer | — | 2 | — | 2 |
-| OLED SDA/SCL (I2C) | — | — | — | 32 / 33 |
+| Signal | Pin |
+|---|---|
+| Motor STBY | 13 |
+| Motor AIN1 / AIN2 / PWMA (left motor) | 26 / 25 / 18 |
+| Motor BIN1 / BIN2 / PWMB (right motor) | 27 / 14 / 19 |
+| TRIG/ECHO Front | 5 / 21 |
+| TRIG/ECHO Left | 4 / 22 |
+| TRIG/ECHO Right | 16 / 17 |
+
+**AS5600/WebDashboard sketches only** — encoder wiring:
+
+| Signal | Pin |
+|---|---|
+| Left encoder SDA / SCL (`Wire`, I2C0) | 32 / 33 |
+| Right encoder SDA / SCL (`Wire1`, I2C1) | 15 / 0 |
+
+> ⚠️ GPIO0 is an ESP32 boot-strapping pin. It's used here as the right encoder's SCL
+> line; a normal external pull-up holds it HIGH at boot so this works in practice, but
+> keep it in mind if you see erratic boot behavior — remap it to a spare pin if needed.
+
+## WiFi dashboard (AS5600/WebDashboard sketches only)
+
+- On boot the ESP32 hosts its own access point — SSID `WallFollowerRobot`, password
+  `robot1234` (change both `AP_SSID`/`AP_PASS` near the top of the sketch before any
+  real deployment; the defaults are open to whoever knows them).
+- Connect a phone or laptop to that network, then browse to the IP address printed to
+  Serial at 115200 baud (the banner re-prints every 10 seconds so it's easy to catch
+  even if you open the Serial Monitor late).
+- The page at `/` is served once; a background poll to the `/data` JSON endpoint
+  refreshes the dashboard every 400 ms with live sensor distances, mode, PID error,
+  motor speeds, and (where present) per-wheel angle/revolutions/RPM and distance
+  traveled.
 
 ## Tuning notes
 
-All sketches expose their tunable constants near the top of the file (wall/stop
-distance thresholds, base/turn PWM speeds, PID or PD gains, and — critically — the
-open-loop turn/reverse timing in milliseconds). Turn and U-turn durations are **not**
-closed-loop (the HC-SR04s can't measure rotation angle), so they must be recalibrated
-by hand for your specific motors, wheel diameter, and floor surface. If a motor spins
-the wrong way on a positive command, flip the corresponding `MOTOR_x_INVERT` flag
-(where present) rather than re-wiring the driver.
+All sketches expose their tunable constants near the top of the file:
+
+- `MAX_DISTANCE_CM` (30) — anything beyond this is treated as "no wall."
+- `WALL_PRESENT_CM` (10) — right-side distance threshold that flips the robot from
+  single-wall (left) following into centering mode.
+- `DESIRED_LEFT_CM` (6) — setpoint used only in single-wall (left) mode.
+- `FRONT_STOP_CM` (4) — front distance that triggers a stop-and-pivot.
+- `BASE_SPEED` / `MAX_SPEED` / `MIN_SPEED` — PWM bounds (0–255). `BASE_SPEED` varies
+  between sketches (150–219) — tune it for your own motors/battery voltage/gearing.
+- `Kp` / `Ki` / `Kd` (8 / 0 / 1 by default) — PID gains; integral is disabled out of
+  the box.
+- `WHEEL_DIAMETER_CM` (6.5, AS5600 sketches only) — feeds the odometry-based "distance
+  traveled" stat; measure your actual wheel and set this accurately.
+
+One inconsistency worth knowing about if you copy tuning between sketches: the
+`pulseIn()` echo timeout in `wall_follower_robot_esp32.ino` is 5880 µs (~1 m range),
+while all three AS5600/dashboard sketches use 25000 µs (~4 m range).
+
+Turn/reverse maneuvers are timed open-loop, not closed-loop off the HC-SR04s (they
+can't measure rotation angle), so pivot durations should be recalibrated by hand for
+your motors, wheel diameter, and floor surface.
 
